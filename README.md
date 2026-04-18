@@ -6,7 +6,7 @@
 
 A **multi-layer prompt injection detection tool** that combines rule-based pattern matching, ML classification (DeBERTa), and LLM-as-Judge reasoning — inspired by the Defense in Depth philosophy used in network security.
 
-> **Related projects:** [llm-leakage-simulator](../llm-leakage-simulator) — demonstrates what leaks when this detector isn't in place.
+> **Related projects:** [llm-leakage-simulator](https://github.com/shigyo2021/llm-leakage-simulator)
 
 ---
 
