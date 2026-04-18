@@ -76,7 +76,7 @@ Combining all three mirrors the **Defense in Depth** principle from network secu
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/YOUR_USERNAME/prompt-injection-detector.git
+git clone https://github.com/shigyo2021/prompt-injection-detector.git
 cd prompt-injection-detector
 
 # 2. Create a virtual environment
