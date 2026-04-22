@@ -49,15 +49,25 @@ with st.sidebar:
         disabled=not enable_ml,
     )
 
+    st.caption(
+        "⚠️ 入力キーは Streamlit プロセス内だけで保持し、環境変数には書き込みません。"
+        "**本番キーは貼らないでください**。"
+    )
     api_key_input = st.text_input(
         "Anthropic API キー（Layer 3 用）",
         type="password",
         placeholder="sk-ant-...",
         help="空欄の場合、Layer 3 は無効になります。",
     )
-    enable_llm = bool(api_key_input)
-    if api_key_input:
-        os.environ["ANTHROPIC_API_KEY"] = api_key_input
+
+    # Shape-validate before deciding whether Layer 3 is on. Invalid-shape keys
+    # are treated as empty — saves an API round-trip and avoids sending the
+    # bad key to Anthropic (whose error echoes may include request metadata).
+    from src.secrets_util import validate_api_key  # local import to keep top tidy
+    api_key_valid, api_key_msg = validate_api_key(api_key_input, provider="anthropic")
+    enable_llm = bool(api_key_input) and api_key_valid
+    if api_key_input and not api_key_valid:
+        st.caption(f":red[{api_key_msg}]")
 
     st.divider()
     st.caption("**有効な検知層**")
@@ -71,17 +81,38 @@ with st.sidebar:
         "時間がかかる場合があります。"
     )
 
-# ── Detector (cached to avoid re-loading ML model on every interaction) ───────
+# ── Detector ──────────────────────────────────────────────────────────────────
+# The ML model is the expensive part to load, so we cache it separately and
+# rebuild only the thin orchestration wrapper when the API key changes. This
+# avoids two bugs at once:
+#   1. caching by api_key would keep the key in streamlit's cache across
+#      sessions (H2);
+#   2. caching without api_key meant the cached detector was stuck with the
+#      first key ever provided.
 @st.cache_resource(show_spinner="MLモデルをロード中…")
-def get_detector(enable_ml_: bool, ml_threshold_: float, enable_llm_: bool):
+def get_ml_detector(enable_ml_: bool, ml_threshold_: float):
+    # Reuse the MultiLayerDetector to get the ML wrapper with the right threshold
     return MultiLayerDetector(
         enable_ml=enable_ml_,
-        enable_llm=enable_llm_,
+        enable_llm=False,
         ml_threshold=ml_threshold_,
     )
 
 
-detector = get_detector(enable_ml, ml_threshold, enable_llm)
+def build_detector(enable_ml_: bool, ml_threshold_: float, enable_llm_: bool, api_key_: str | None):
+    # Cheap path: no LLM → just reuse the ML-cached detector as-is.
+    if not enable_llm_:
+        return get_ml_detector(enable_ml_, ml_threshold_)
+    # LLM path: construct a fresh detector so the key is scoped to this call.
+    return MultiLayerDetector(
+        enable_ml=enable_ml_,
+        enable_llm=True,
+        ml_threshold=ml_threshold_,
+        anthropic_api_key=api_key_,
+    )
+
+
+detector = build_detector(enable_ml, ml_threshold, enable_llm, api_key_input or None)
 
 # ── Main area ─────────────────────────────────────────────────────────────────
 st.title("🛡️ Prompt Injection Detector")

@@ -1,5 +1,26 @@
-pytest>=7.4.0
-transformers>=4.35.0
-torch>=2.0.0
-anthropic>=0.20.0
-streamlit>=1.28.0
+# M4: Supply-chain hardening — pin every dependency to a tested floor AND
+# a major-version upper bound.
+#
+# Why both bounds:
+#   - Floor (>=): the version this code has actually been tested against.
+#     Unpinned floors let a user install an ancient release with known CVEs
+#     (e.g. transformers < 4.48 had a pickle-deserialization RCE via
+#     trust_remote_code auto-load on some repos).
+#   - Upper (<): the next SemVer major. Protects against a surprise breaking
+#     API change silently landing on a fresh install / CI run. Multi-layer
+#     detection relies on specific transformers / torch call shapes — a
+#     major bump (e.g. transformers 6.x removing pipeline()) would break
+#     MLDetector without any commit to this repo.
+#
+# This is the realistic portfolio compromise between fully unpinned
+# (fragile, supply-chain risk) and hash-locked (needs pip-tools / uv and
+# regeneration on every bump). Production deployments should additionally
+# pin the transitive tree via `pip-compile --generate-hashes` or uv.lock.
+#
+# Versions below match the environment these tests were validated on.
+
+pytest>=8.0.0,<10.0.0
+transformers>=4.48.0,<6.0.0
+torch>=2.2.0,<3.0.0
+anthropic>=0.40.0,<1.0.0
+streamlit>=1.35.0,<2.0.0

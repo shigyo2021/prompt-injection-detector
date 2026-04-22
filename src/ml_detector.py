@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import Optional
 
 from .config import ML_MODEL_NAME, ML_THRESHOLD
+from .normalize import normalize
 
 
 class MLDetector:
@@ -60,7 +61,11 @@ class MLDetector:
         if self._pipeline is None:
             self._load_pipeline()
 
-        result = self._pipeline(text)[0]  # type: ignore[index]
+        # Normalize input so bypass tricks (full-width, zero-width splits,
+        # bidi overrides) cannot mask injection signals from the classifier.
+        normalized = normalize(text)
+
+        result = self._pipeline(normalized)[0]  # type: ignore[index]
         label: str = result["label"].upper()
         score: float = float(result["score"])
 

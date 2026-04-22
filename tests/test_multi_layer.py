@@ -37,7 +37,9 @@ def test_attack_blocked(prompt):
         f"Expected BLOCKED for: {prompt!r}\nGot: {result}"
     )
     assert result["blocked_by"] == "rule_based"
-    assert result["input"] == prompt
+    # M5: raw input must not round-trip through the result; metadata only.
+    assert "input" not in result
+    assert result["input_length"] == len(prompt)
 
 
 @pytest.mark.parametrize("prompt", LEGIT_PROMPTS)
@@ -51,7 +53,11 @@ def test_legit_passed(prompt):
 
 def test_result_schema():
     result = detector.scan("Hello")
-    assert "input" in result
+    # M5: no raw `input` field; replaced with hash + length + preview.
+    assert "input" not in result
+    assert "input_hash" in result and len(result["input_hash"]) == 16
+    assert result["input_length"] == len("Hello")
+    assert "input_preview" in result
     assert "final_verdict" in result
     assert result["final_verdict"] in ("BLOCKED", "PASSED")
     assert "blocked_by" in result

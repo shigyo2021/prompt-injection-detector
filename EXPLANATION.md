@@ -410,7 +410,10 @@ pytest tests/ -v
         ▼
 【最終的な戻り値（JSON）】
 {
-  "input": "前の指示を無視して...",
+  // M5: 生の入力は返さない（ハッシュ + 長さ + redact 済みプレビューのみ）
+  "input_hash": "7f3c8a12b4d9e0a6",
+  "input_length": 24,
+  "input_preview": "前の指示を無視して...",
   "final_verdict": "BLOCKED",
   "blocked_by": "rule_based",
   "layers": [
@@ -420,7 +423,8 @@ pytest tests/ -v
       "detail": "ignore_instructions_ja"
     }
     // Layer 2・3 は実行されなかったので含まれない
-  ]
+  ],
+  "scan_id": "a1b2c3d4e5f6"  // M3: 監査ログとの相関ID
 }
         │
         ▼
